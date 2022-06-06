@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 
 import torch
+from torch import Tensor
 from torch import nn
 
 
@@ -14,27 +15,27 @@ class ProductionRule(nn.Module, ABC):
         self.embedding = nn.Parameter(torch.randn(embedding_size))
 
     def forward(self,
-                v_primary: torch.Tensor,
-                v_context: torch.Tensor) -> torch.Tensor:
-        return v_primary + self.rule(v_primary, v_context)
+                var_primary: Tensor,
+                var_context: Tensor) -> Tensor:
+        return var_primary + self.rule(var_primary, var_context)
 
     @abstractmethod
     def rule(self,
-             v_primary: torch.Tensor,
-             v_context: torch.Tensor) -> torch.Tensor:
+             var_primary: Tensor,
+             var_context: Tensor) -> Tensor:
         pass
 
 
 class NullRule(ProductionRule):
 
     def forward(self,
-                v_primary: torch.Tensor,
-                v_context: torch.Tensor) -> torch.Tensor:
-        return v_primary
+                var_primary: Tensor,
+                var_context: Tensor) -> Tensor:
+        return var_primary
 
     def rule(self,
-             v_primary: torch.Tensor,
-             v_context: torch.Tensor) -> torch.Tensor:
+             var_primary: Tensor,
+             var_context: Tensor) -> Tensor:
         raise NotImplementedError()
 
 
@@ -47,7 +48,7 @@ class MLPRule(ProductionRule):
     def __init__(self,
                  embedding_size: int,
                  state_size: int,
-                 hidden_sizes: Tuple[int] = (128,),
+                 hidden_sizes: Tuple[int, ...] = (128,),
                  dropout_p: float = 0.0):
         assert 0 <= dropout_p <= 1
         super(MLPRule, self).__init__(embedding_size=embedding_size)
@@ -65,9 +66,9 @@ class MLPRule(ProductionRule):
         self.dropout = nn.Dropout(dropout_p) if dropout_p > 0 else None
 
     def rule(self,
-             v_primary: torch.Tensor,
-             v_context: torch.Tensor) -> torch.Tensor:
-        x = torch.concat((v_primary, v_context), dim=1)
+             var_primary: Tensor,
+             var_context: Tensor) -> Tensor:
+        x = torch.concat((var_primary, var_context), dim=1)
         x = self.layers(x)
         if self.dropout:
             x = self.dropout(x)
